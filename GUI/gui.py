@@ -1,49 +1,83 @@
 #https://tkdocs.com/tutorial/firstexample.html
-from logging import root
+from multiprocessing import Process
 from tkinter import *
 from tkinter import ttk
+import tkinter
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, 
+NavigationToolbar2Tk)
+import numpy as np
+import pandas as pd
 
-class feetToMeters:
+class displayGraph:
 
-    def __init__(self, root):
-        root.title("Feet to Meters")
+        def __init__(self, root, mainframe):
+            
+            
+            self.mainframe = mainframe
+            self.root = root
 
-        mainframe = ttk.Frame(root, padding=(3,3,12,12))
-        mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
+            self.root.title("Display Graph")
 
-        self.feet = StringVar()
-        ttk.Button(mainframe, text="Launch Program", command = self.run).grid(column=2, row=2)
-        self.meters = StringVar()
+            self.buttonText = StringVar(self.mainframe, value="Launch Program")
+            self.exponent = IntVar(self.mainframe, value=2)
+            
+            quitButton = ttk.Button(self.mainframe, width=20, text="Quit", command=
+                                    lambda: [])
+            quitButton.grid(column=2, row=1, sticky=(W,E))
 
-        l =ttk.Label(mainframe, text="Starting...")
-        l.grid(column=2, row=3)
-        l.bind('<Enter>', lambda e: l.configure(text='Moved mouse inside'))
-        l.bind('<Leave>', lambda e: l.configure(text='Moved mouse outside'))
-        l.bind('<ButtonPress-1>', lambda e: l.configure(text='Clicked left mouse button'))
-        l.bind('<3>', lambda e: l.configure(text='Clicked third mouse button'))
-        l.bind('<Double-1>', lambda e: l.configure(text='Double clicked'))
-        l.bind('<B3-Motion>', lambda e: l.configure(text=f'third button drag to {e.x},{e.y}'))
-        
-        root.columnconfigure(0, weight=1)
-        root.rowconfigure(0, weight=1)
+            b = ttk.Button(self.mainframe, width=20, textvariable=self.buttonText, command=self.plot)
+            b.grid(column=2, row=3)
+            b.bind("<Enter>", lambda e: self.buttonText.set(self.buttonText.get().upper()))
+            b.bind("<Leave>", lambda e: self.buttonText.set(self.buttonText.get().lower()))
 
-        mainframe.columnconfigure(2, weight=1)
-        for child in mainframe.winfo_children():
-            child.grid_configure(padx=5, pady=5)
+            vcmd = (self.mainframe.register(self.validateIntEntry), '%P')
 
-        root.bind("<Return>", self.run)
+            intEntry = ttk.Entry(self.mainframe, width=7, textvariable=self.exponent,
+                                validate='all', validatecommand=vcmd)
+            intEntry.grid(column=2, row=5, sticky=(W,E))
+            intEntry.focus_set()
+            intEntry.bind("<Return>", self.updatePlot)
 
-        
-    def run(self):
-        pass
-    
-    # def calculate(self, *args):
-    #     try: 
-    #         value = float(self.feet.get())
-    #         self.meters.set(round(0.3048 * value, 4))
-    #     except ValueError:
-    #         pass
+        def updatePlot(self, event):
+            # Call plot and then schedule focus to return to the entry widget
+            self.plot()
+            event.widget.after_idle(lambda: event.widget.focus_force())
+            return "break"
 
-root = Tk()
-feetToMeters(root)
-root.mainloop()
+        def validateIntEntry(self, input):
+            return input.isdigit() or input == ""
+
+        def plot(self):
+            e = float(self.exponent.get())
+            x = np.linspace(0,10,100)
+            fig, axs = plt.subplots(figsize=(6, 4), layout='constrained')
+            axs.plot(x, x**e, c='b')
+            
+            canvas = FigureCanvasTkAgg(fig, master=self.mainframe)
+            canvas.draw()
+            canvas.get_tk_widget().grid(column=2, row=3, sticky=(N,E,W,S))
+
+        def _quit(self):
+            self.root.quit()     # stops mainloop
+            self.root.destroy()  # necessary on Windows to prevent a fatal error
+
+
+def run_gui():
+    root = Tk()
+    mainframe = ttk.Frame(root, padding=(10, 10))
+    mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
+    displayGraph(root, mainframe)
+    root.mainloop()
+
+if __name__ == "__main__":
+    # Start GUI in a separate process. Don't daemonize so it runs independently.
+    p = Process(target=run_gui)
+    p.start()
+
+    try:
+        input("GUI started in child process. Press Enter to stop...\n")
+    finally:
+        p.terminate()
+        p.join()

@@ -5,7 +5,7 @@ import librosa
 
 filename = "Music/lonelyGirl.wav"
 # getting information from the file
-time_series, sample_rate = librosa.load(filename)
+time_series, sample_rate = librosa.load(filename, duration=5)
 
 def plot_spectrogram(time_series):
     # getting a matrix which contains amplitude values according to frequency and time indexes
@@ -24,6 +24,10 @@ def beatTracker(time_series, sample_rate):
     tempo, beat_frames = librosa.beat.beat_track(y=time_series, sr=sample_rate)
     beat_times = librosa.frames_to_time(beat_frames, sr=sample_rate)
     print(tempo)
+    print(beat_times)
 
 # plot_spectrogram(time_series)
+plot_spectrogram(time_series)
+
+#return tempo and beat times
 beatTracker(time_series, sample_rate)

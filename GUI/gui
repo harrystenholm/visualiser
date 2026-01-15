@@ -18,20 +18,26 @@ class displayGraph:
         self.root = root
         self.root.title("Displays Graph")
 
+        #Variables
         self.text = StringVar(self.mainframe, value="Graph Generator")
         self.buttonText = StringVar(self.mainframe, value="Generate")
         self.onOff = BooleanVar(self.mainframe, value=False)
+        self.frequency = 1.0
+        self.params = ((10,10),(4,12),(50,12),(6,55))
 
+        #Title Label
         label = ttk.Label(self.mainframe, textvariable=self.text, font=("Arial", 16))
         label.grid(column=45, row = 15)
-
-        # quit = ttk.Button(self.mainframe, width=20, text="Quit", command=self._quit)
-        # quit.grid(column=1000, row=1, sticky=(N,E))
 
         # buttons
         # launch button
         lb = ttk.Button(self.mainframe, width=20, textvariable=self.buttonText, command=self.closeOrLaunch)
         lb.grid(column=45, row = 30)
+
+        #slider
+        slider = tkinter.Scale(mainframe, from_=1, to=5, orient=tkinter.HORIZONTAL,
+                              command=self.update_frequency, label="Frequency [Hz]")
+        slider.grid(column=45, row=60)
 
     def closeOrLaunch(self):
         if self.onOff.get():
@@ -41,16 +47,33 @@ class displayGraph:
             self.launch()
             self.onOff.set(True)
     
+    def close(self):
+        self.text.set("Graph Closed")
+        self.buttonText.set("Generate")
+        plt.close(self.fig)
+        self.canvas.get_tk_widget().destroy()
+
     def launch(self):
         self.text.set("Graph Launched")
         self.buttonText.set("Close")
         self.fig = plt.figure(figsize=(5,4), dpi=100, layout='constrained')
+        ax = self.fig.add_subplot()
 
-    def close(self):
-        self.text.set("Graph Closed")
-        self.buttonText.set("Generate")
-        self.fig.clf()
+        # generate data for hist
+        for a, b in self.params:
+            multiplier = self.frequency
+            values = np.random.beta(a*multiplier, b*multiplier, 1000)
+            ax.hist(values, bins=30, alpha=0.8, density=True, histtype='stepfilled')
+        
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.mainframe)
+        self.canvas.draw()
+        self.canvas.get_tk_widget().grid(column=45, row=45, sticky=(E,W))
 
+    def update_frequency(self, new_val):
+        self.frequency = float(new_val)
+        plt.close(self.fig)
+        self.canvas.get_tk_widget().destroy()
+        self.launch()
     # def _quit(self):
     #     self.root.quit()
     #     self.root.destroy()

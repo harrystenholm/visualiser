@@ -20,15 +20,19 @@ class displayGraph:
         self.root.title("Displays Graph")
 
         #Variables
+        self.totalFrames = 60
+        self.fps = round(1000/self.totalFrames)
         self.text = StringVar(self.mainframe, value="Graph Generator")
         self.launchButtonText = StringVar(self.mainframe, value="Generate")
         self.animationButtonText = StringVar(self.mainframe, value="Start Animation")
         self.onOff = BooleanVar(self.mainframe, value=False)
         self.frequency = 1.0
         self.params = ((10,10),(4,12),(50,12),(6,55))
-        self.offset = 0.0
+        self.offset = 0
+        self.offsetArray = np.linspace(0, 1, self.totalFrames+1)
         self.animation_running = False
-
+        self.frame = 1
+ 
         #Title Label
         label = ttk.Label(self.mainframe, textvariable=self.text, font=("Arial", 16))
         label.grid(column=45, row = 15)
@@ -56,30 +60,35 @@ class displayGraph:
             self.onOff.set(True)
     
     def close(self):
+        self.animation_running = False
+        self.animationButtonText.set("Start Animation"),
         self.text.set("Graph Closed")
         self.launchButtonText.set("Generate")
         self.ab.config(state='disabled')
-        plt.close(self.fig)
         self.canvas.get_tk_widget().destroy()
 
     def launch(self):
         self.ab.config(state='enabled')
         self.text.set("Graph Launched")
         self.launchButtonText.set("Close")
+
+        #initialize figure and axis
         self.fig = plt.figure(figsize=(5,4), dpi=100, layout='constrained')
-        self.ax = self.fig.add_subplot()
-        
+        self.ax = self.fig.add_subplot()     
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.mainframe)
         self.canvas.get_tk_widget().grid(column=45, row=45, sticky=(E,W))
-        # generate data for hist
+        
         self.draw()     
 
     def draw(self):
         self.ax.clear()
         for a, b in self.params:
             multiplier = self.frequency
-            values = np.random.beta(a * multiplier + self.offset, b * multiplier, 1000)
-            self.ax.hist(values, bins=30, alpha=0.8, density=True, histtype='stepfilled')
+            getValues = np.random.beta(a * multiplier, b * multiplier, 1000) + self.offset
+            values = [x-1 if x > 1 else x for x in getValues]
+            self.ax.hist(values, bins=100, alpha=0.8, density=True, histtype='stepfilled')
+            self.ax.set_xlim(0, 1),
+            self.ax.set_ylim(0, 20)
         self.canvas.draw_idle() 
 
     def update_frequency(self, new_val):
@@ -98,26 +107,26 @@ class displayGraph:
             self.animation_running = True
             self.start_animation()
             self.animationButtonText.set("Stop Animation")
-
-
-    def update(self, frame):
-        self.ax.clear()
-        self.offset = np.linspace(0, 1, 51)[frame]
-        self.draw()
             
     def start_animation(self):
         self.animation_running = True
-        self.animate_frame(1)
+        self.animate_frame(self.frame)
 
     def animate_frame(self, frame):
-        if frame < 50 and self.animation_running:
+        self.frame = frame
+        if frame < self.totalFrames and self.animation_running:
             self.update(frame)
-            self.mainframe.after(100, self.animate_frame, frame + 1)
-        elif frame == 50 and self.animation_running:
+            self.mainframe.after(self.fps, self.animate_frame, frame + 1)
+        elif frame == self.totalFrames and self.animation_running:
             self.update(frame)
-            self.mainframe.after(100, self.animate_frame, frame = 1)
+            self.mainframe.after(self.fps, self.animate_frame, frame = 1)
         else: 
-            return
+            pass
+        
+    def update(self, frame):
+        self.ax.clear()
+        self.offset = self.offsetArray[frame]
+        self.draw()
 
 def run_gui():
     root = Tk()

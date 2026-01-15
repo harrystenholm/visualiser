@@ -4,6 +4,7 @@ from tkinter import ttk
 import tkinter
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.animation as anim
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, 
 NavigationToolbar2Tk)
 import numpy as np
@@ -20,10 +21,13 @@ class displayGraph:
 
         #Variables
         self.text = StringVar(self.mainframe, value="Graph Generator")
-        self.buttonText = StringVar(self.mainframe, value="Generate")
+        self.launchButtonText = StringVar(self.mainframe, value="Generate")
+        self.animationButtonText = StringVar(self.mainframe, value="Start Animation")
         self.onOff = BooleanVar(self.mainframe, value=False)
         self.frequency = 1.0
         self.params = ((10,10),(4,12),(50,12),(6,55))
+        self.offset = 0.0
+        self.animation_running = False
 
         #Title Label
         label = ttk.Label(self.mainframe, textvariable=self.text, font=("Arial", 16))
@@ -31,13 +35,17 @@ class displayGraph:
 
         # buttons
         # launch button
-        lb = ttk.Button(self.mainframe, width=20, textvariable=self.buttonText, command=self.closeOrLaunch)
+        lb = ttk.Button(self.mainframe, width=20, textvariable=self.launchButtonText, command=self.closeOrLaunch)
         lb.grid(column=45, row = 30)
 
+        self.ab = ttk.Button(self.mainframe, width=20, textvariable=self.animationButtonText, command=self.startOrStopAnimation)
+        self.ab.grid(column=45, row = 60)
+        self.ab.config(state='disabled')
+
         #slider
-        slider = tkinter.Scale(mainframe, from_=1, to=5, orient=tkinter.HORIZONTAL,
+        slider = tkinter.Scale(mainframe, from_=1, to=15, orient=tkinter.VERTICAL,
                               command=self.update_frequency, label="Frequency [Hz]")
-        slider.grid(column=45, row=60)
+        slider.grid(column=1, row=45, sticky=(N,S), columnspan=20)
 
     def closeOrLaunch(self):
         if self.onOff.get():
@@ -49,35 +57,67 @@ class displayGraph:
     
     def close(self):
         self.text.set("Graph Closed")
-        self.buttonText.set("Generate")
+        self.launchButtonText.set("Generate")
+        self.ab.config(state='disabled')
         plt.close(self.fig)
         self.canvas.get_tk_widget().destroy()
 
     def launch(self):
+        self.ab.config(state='enabled')
         self.text.set("Graph Launched")
-        self.buttonText.set("Close")
+        self.launchButtonText.set("Close")
         self.fig = plt.figure(figsize=(5,4), dpi=100, layout='constrained')
-        ax = self.fig.add_subplot()
-
-        # generate data for hist
-        for a, b in self.params:
-            multiplier = self.frequency
-            values = np.random.beta(a*multiplier, b*multiplier, 1000)
-            ax.hist(values, bins=30, alpha=0.8, density=True, histtype='stepfilled')
+        self.ax = self.fig.add_subplot()
         
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.mainframe)
-        self.canvas.draw()
         self.canvas.get_tk_widget().grid(column=45, row=45, sticky=(E,W))
+        # generate data for hist
+        self.draw()     
+
+    def draw(self):
+        self.ax.clear()
+        for a, b in self.params:
+            multiplier = self.frequency
+            values = np.random.beta(a * multiplier + self.offset, b * multiplier, 1000)
+            self.ax.hist(values, bins=30, alpha=0.8, density=True, histtype='stepfilled')
+        self.canvas.draw_idle() 
 
     def update_frequency(self, new_val):
         self.frequency = float(new_val)
-        plt.close(self.fig)
-        self.canvas.get_tk_widget().destroy()
-        self.launch()
-    # def _quit(self):
-    #     self.root.quit()
-    #     self.root.destroy()
+        if self.animation_running:
+            pass
+        else:
+            self.draw()
 
+    # animation functions
+    def startOrStopAnimation(self):
+        if self.animation_running:
+            self.animation_running = False
+            self.animationButtonText.set("Start Animation")
+        else:
+            self.animation_running = True
+            self.start_animation()
+            self.animationButtonText.set("Stop Animation")
+
+
+    def update(self, frame):
+        self.ax.clear()
+        self.offset = np.linspace(0, 1, 51)[frame]
+        self.draw()
+            
+    def start_animation(self):
+        self.animation_running = True
+        self.animate_frame(1)
+
+    def animate_frame(self, frame):
+        if frame < 50 and self.animation_running:
+            self.update(frame)
+            self.mainframe.after(100, self.animate_frame, frame + 1)
+        elif frame == 50 and self.animation_running:
+            self.update(frame)
+            self.mainframe.after(100, self.animate_frame, frame = 1)
+        else: 
+            return
 
 def run_gui():
     root = Tk()

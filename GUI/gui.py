@@ -30,6 +30,7 @@ class displayGraph:
         self.params = ((10,10),(4,12),(50,12),(6,55))
         self.offset = 0
         self.offsetArray = np.linspace(0, 1, self.totalFrames+1)
+        self.speed = IntVar(self.mainframe, value=1)
         self.animation_running = False
         self.frame = 1
  
@@ -46,10 +47,13 @@ class displayGraph:
         self.ab.grid(column=45, row = 60)
         self.ab.config(state='disabled')
 
-        #slider
+        #sliders
         slider = tkinter.Scale(mainframe, from_=1, to=15, orient=tkinter.VERTICAL,
                               command=self.update_frequency, label="Frequency [Hz]")
         slider.grid(column=1, row=45, sticky=(N,S), columnspan=20)
+
+        speedSlider = tkinter.Scale(mainframe, from_=1, to=10,  orient=tkinter.VERTICAL,label="Speed", variable=self.speed)
+        speedSlider.grid(column=60, row=45, sticky=(N,S), columnspan=20)
 
     def closeOrLaunch(self):
         if self.onOff.get():
@@ -84,7 +88,7 @@ class displayGraph:
         self.ax.clear()
         for a, b in self.params:
             multiplier = self.frequency
-            getValues = np.random.beta(a * multiplier, b * multiplier, 1000) + self.offset
+            getValues = np.random.beta(a * multiplier, b * multiplier, 1000) + self.offset 
             values = [x-1 if x > 1 else x for x in getValues]
             self.ax.hist(values, bins=100, alpha=0.8, density=True, histtype='stepfilled')
             self.ax.set_xlim(0, 1),
@@ -98,6 +102,9 @@ class displayGraph:
         else:
             self.draw()
 
+    # def update_speed(self, new_val):
+    #     self.speed = float(new_val) / 10
+
     # animation functions
     def startOrStopAnimation(self):
         if self.animation_running:
@@ -110,22 +117,23 @@ class displayGraph:
             
     def start_animation(self):
         self.animation_running = True
-        self.animate_frame(self.frame)
+        self.animate_frame()
 
-    def animate_frame(self, frame):
-        self.frame = frame
-        if frame < self.totalFrames and self.animation_running:
-            self.update(frame)
-            self.mainframe.after(self.fps, self.animate_frame, frame + 1)
-        elif frame == self.totalFrames and self.animation_running:
-            self.update(frame)
-            self.mainframe.after(self.fps, self.animate_frame, frame = 1)
+    def animate_frame(self):
+        if self.frame < self.totalFrames and self.animation_running:
+            self.update()
+            self.frame += 1
+            self.mainframe.after(self.fps, self.animate_frame)
+        elif self.frame == self.totalFrames and self.animation_running:
+            self.update()
+            self.frame = 1
+            self.mainframe.after(self.fps, self.animate_frame)
         else: 
             pass
         
-    def update(self, frame):
+    def update(self):
         self.ax.clear()
-        self.offset = self.offsetArray[frame]
+        self.offset = (self.offsetArray[self.frame] * float(self.speed.get()) * 0.1)
         self.draw()
 
 def run_gui():

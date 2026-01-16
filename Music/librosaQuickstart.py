@@ -27,7 +27,6 @@ def beatTracker(time_series, sample_rate):
     print(beat_times)
 
 # plot_spectrogram(time_series)
-plot_spectrogram(time_series)
 
 #return tempo and beat times
 beatTracker(time_series, sample_rate)

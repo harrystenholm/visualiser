@@ -1,5 +1,7 @@
 numpy
-tkinter
 matplotlib
 pandas
 librosa
+mir_eval
+IPython
+pygame-ce
